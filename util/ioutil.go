@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"bufio"
@@ -6,7 +6,20 @@ import (
 	"os"
 )
 
-func readLines(path string) ([]string, error) {
+func Parse(path string) []string {
+	file, err := os.Stat(path)
+
+	if err == nil && !file.IsDir() {
+		content, err := Read(path)
+		if err == nil {
+			return content
+		}
+	}
+
+	return []string{""}
+}
+
+func Read(path string) ([]string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -21,7 +34,7 @@ func readLines(path string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
-func writeLines(lines []string, path string) error {
+func Write(lines []string, path string) error {
 	file, err := os.Create(path)
 	if err != nil {
 		return err
