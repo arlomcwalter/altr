@@ -2,137 +2,112 @@ package editor
 
 import (
 	"fmt"
-	"github.com/nsf/termbox-go"
-	"os"
+	"github.com/gdamore/tcell/v2"
 )
 
 type Editor struct {
-	title   string
-	content []string
-	offX    int
-	offY    int
-	Cursor  Cursor
+	Screen   tcell.Screen
+	Title    string
+	Content  []string
+	Cursor   Cursor
+	IsNew    bool
+	Modified bool
 }
 
-var editorName = "ALTR"
+var (
+	// Colors
+	accentColor = tcell.NewRGBColor(150, 76, 224)
+	textColor   = tcell.ColorWhite
+	invertColor = tcell.ColorSlateGray
 
-var accentColor = termbox.RGBToAttribute(150, 76, 224)
-var textColor = termbox.RGBToAttribute(255, 255, 255)
+	// Styles
+	resetStyle     = tcell.StyleDefault.Foreground(tcell.ColorReset).Background(tcell.ColorReset)
+	titleBarStyle  = tcell.StyleDefault.Foreground(textColor).Background(accentColor)
+	statusBarStyle = tcell.StyleDefault.Foreground(textColor).Background(invertColor)
+)
 
-func CreateEditor() *Editor {
-	name := "untitled"
-	var content []string
-
-	if len(os.Args[1:]) > 0 {
-		name = os.Args[1]
-
-		file, err := os.Stat(name)
-		if err == nil && !file.IsDir() {
-			name = file.Name()
-			content, err = readLines(name)
-			if err != nil {
-				content = []string{}
-			}
-		}
-	}
-
-	editor := new(Editor)
-	editor.title = name
-	editor.content = content
-	editor.Cursor.Set(0, 1, editor)
-
-	return editor
+func (e *Editor) Close() {
+	e.Screen.Fini()
 }
 
 func (e *Editor) PollEvents() {
-	events := make(chan termbox.Event)
+	events := make(chan tcell.Event)
+
 	go func() {
 		for {
-			events <- termbox.PollEvent()
+			if e.Screen == nil {
+				break
+			}
+			events <- e.Screen.PollEvent()
 		}
 	}()
 
 loop:
 	for {
 		select {
-		case event := <-events:
-			switch event.Type {
-			case termbox.EventKey:
-				if event.Ch != 0 {
-
-				} else if event.Key != 0 {
-					switch event.Key {
-					case termbox.KeyCtrlC:
-						break loop
-					case termbox.KeyArrowLeft:
-						e.Cursor.MoveX(-1, e)
-						e.Draw()
-					case termbox.KeyArrowRight:
-						e.Cursor.MoveX(1, e)
-						e.Draw()
-					case termbox.KeyArrowUp:
-						e.Cursor.MoveY(-1, e)
-						e.Draw()
-					case termbox.KeyArrowDown:
-						e.Cursor.MoveY(1, e)
-						e.Draw()
-					}
+		case ev := <-events:
+			switch event := ev.(type) {
+			case *tcell.EventKey:
+				switch event.Key() {
+				case tcell.KeyCtrlC:
+					break loop
+				case tcell.KeyLeft:
+					e.Cursor.MoveX(-1, e)
+					e.Draw()
+				case tcell.KeyRight:
+					e.Cursor.MoveX(1, e)
+					e.Draw()
+				case tcell.KeyUp:
+					e.Cursor.MoveY(-1, e)
+					e.Draw()
+				case tcell.KeyDown:
+					e.Cursor.MoveY(1, e)
+					e.Draw()
 				}
-			case termbox.EventResize:
+			case *tcell.EventResize:
 				e.Draw()
-			case termbox.EventError:
-				panic(event.Err)
+			case *tcell.EventError:
+				panic(event.Error())
 			}
 		}
 	}
 }
 
 func (e *Editor) Draw() {
-	termbox.SetCursor(e.Cursor.x, e.Cursor.y)
+	e.Screen.ShowCursor(e.Cursor.X, e.Cursor.Y)
+	e.Screen.Clear()
+	e.Screen.Sync()
 
-	err := termbox.Sync()
-	if err != nil {
-		panic(err)
-	}
-
-	width, height := termbox.Size()
-
-	err = termbox.Clear(textColor, termbox.ColorDefault)
-	if err != nil {
-		panic(err)
-	}
+	width, height := e.Screen.Size()
 
 	e.printTitleBar(width)
 	e.printContent(width, height)
 	e.printStatusBar(width, height)
 
-	err = termbox.Flush()
-	if err != nil {
-		panic(err)
-	}
+	e.Screen.Show()
 }
 
 func (e *Editor) printTitleBar(width int) {
-	currX := drawStr(" "+editorName, 0, 0, textColor, accentColor)
+	currX := e.drawStr(" ALTR", 0, 0, titleBarStyle)
 
-	titleLen := len(e.title)
+	titleLen := len(e.Title)
 	halfWidth := (width - titleLen) / 2
 
 	for currX < halfWidth {
-		currX += drawChar(' ', currX, 0, textColor, accentColor)
+		currX += e.drawChar(' ', currX, 0, titleBarStyle)
 	}
 
 	for currX < halfWidth+titleLen {
-		currX += drawChar(rune(e.title[currX-halfWidth]), currX, 0, textColor, accentColor)
+		currX += e.drawChar(rune(e.Title[currX-halfWidth]), currX, 0, titleBarStyle)
 	}
 
 	for currX < width {
-		currX += drawChar(' ', currX, 0, textColor, accentColor)
+		currX += e.drawChar(' ', currX, 0, titleBarStyle)
 	}
 }
 
 func (e *Editor) printContent(width, height int) {
-	lines := len(e.content)
+	lines := len(e.Content)
 
 	for y := 1; y < height; y++ {
 		relativeI := y - 1
@@ -141,22 +116,41 @@ func (e *Editor) printContent(width, height int) {
 			continue
 		}
 
-		line := e.content[relativeI]
+		line := e.Content[relativeI]
 		if strLen(line) > width {
 			line = trimStr(line, width)
-			drawChar('…', width-1, y, textColor, termbox.ColorDefault)
+			e.drawChar('…', width-1, y, resetStyle)
 		}
 
-		drawStr(line, 0, y, textColor, termbox.ColorDefault)
+		e.drawStr(line, 0, y, resetStyle)
 	}
 }
 
 func (e *Editor) printStatusBar(width, height int) {
-	message := fmt.Sprintf(" %d:%d (%d:%d)", e.Cursor.y-1, e.Cursor.x, e.docHeight(), e.docWidth())
+	message := fmt.Sprintf(" %d:%d (%d:%d)", e.Cursor.Y-1, e.Cursor.X, e.getHeight(), e.getWidth())
 
-	currX := drawStr(message, 0, height-1, termbox.ColorBlack, textColor)
+	currX := e.drawStr(message, 0, height-1, statusBarStyle)
 
 	for currX < width {
-		currX += drawChar(' ', currX, height-1, termbox.ColorBlack, textColor)
+		currX += e.drawChar(' ', currX, height-1, statusBarStyle)
 	}
+}
+
+func (e *Editor) getWidth() int {
+	var longest int
+
+	for _, str := range e.Content {
+		length := strLen(str)
+		if length > longest {
+			longest = length
+		}
+	}
+
+	width, _ := e.Screen.Size()
+	return max(width, longest)
+}
+
+func (e *Editor) getHeight() int {
+	_, height := e.Screen.Size()
+	return max(height-2, len(e.Content))
 }

@@ -1,25 +1,34 @@
 package editor
 
 import (
-	"bufio"
-	"fmt"
+	"github.com/gdamore/tcell/v2"
 	"github.com/mattn/go-runewidth"
-	"github.com/nsf/termbox-go"
-	"os"
 )
 
-func drawStr(msg string, x, y int, fg, bg termbox.Attribute) int {
+// Errors
+
+type InvalidFileErr struct{}
+
+func (m *InvalidFileErr) Error() string {
+	return "Invalid file input."
+}
+
+// Drawing to screen
+
+func (e *Editor) drawStr(msg string, x, y int, style tcell.Style) int {
 	for _, char := range msg {
-		x += drawChar(char, x, y, fg, bg)
+		x += e.drawChar(char, x, y, style)
 	}
 
 	return x
 }
 
-func drawChar(char rune, x, y int, fg, bg termbox.Attribute) int {
-	termbox.SetCell(x, y, char, fg, bg)
+func (e *Editor) drawChar(char rune, x, y int, style tcell.Style) int {
+	e.Screen.SetContent(x, y, char, nil, style)
 	return runewidth.RuneWidth(char)
 }
+
+// Screen clipping
 
 func strLen(msg string) int {
 	var length int
@@ -48,53 +57,7 @@ func trimStr(msg string, width int) string {
 	return msg
 }
 
-func readLines(path string) ([]string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var lines []string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-	}
-	return lines, scanner.Err()
-}
-
-func writeLines(lines []string, path string) error {
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	w := bufio.NewWriter(file)
-	for _, line := range lines {
-		fmt.Fprintln(w, line)
-	}
-	return w.Flush()
-}
-
-func (e *Editor) docWidth() int {
-	var longest int
-
-	for _, str := range e.content {
-		length := strLen(str)
-		if length > longest {
-			longest = length
-		}
-	}
-
-	termWidth, _ := termbox.Size()
-	return max(termWidth, longest)
-}
-
-func (e *Editor) docHeight() int {
-	_, termHeight := termbox.Size()
-	return max(termHeight-1, len(e.content))
-}
+// Math
 
 func max(max, val int) int {
 	if val > max {

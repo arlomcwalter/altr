@@ -1,15 +1,15 @@
 package editor
 
 type Cursor struct {
-	x, y int
+	X, Y int
 }
 
 func (c *Cursor) MoveX(move int, e *Editor) {
-	c.SetX(c.x+move, e)
+	c.SetX(c.X+move, e)
 }
 
 func (c *Cursor) MoveY(move int, e *Editor) {
-	c.SetY(c.y+move, e)
+	c.SetY(c.Y+move, e)
 }
 
 func (c *Cursor) Set(x, y int, e *Editor) {
@@ -18,9 +18,9 @@ func (c *Cursor) Set(x, y int, e *Editor) {
 }
 
 func (c *Cursor) SetX(x int, e *Editor) {
-	c.x = clamp(0, e.docWidth(), x)
+	c.X = clamp(0, e.getWidth(), x)
 }
 
 func (c *Cursor) SetY(y int, e *Editor) {
-	c.y = clamp(1, e.docHeight()+1, y)
+	c.Y = clamp(1, e.getHeight(), y)
 }
