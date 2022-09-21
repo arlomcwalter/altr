@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"fmt"
 	"github.com/nsf/termbox-go"
 	"os"
 )
@@ -8,18 +9,37 @@ import (
 type Editor struct {
 	title   string
 	content []string
+	offX    int
+	offY    int
+	Cursor  Cursor
 }
 
 var editorName = "ALTR"
 
-func CreateEditor() *Editor {
-	editor := new(Editor)
+var accentColor = termbox.RGBToAttribute(150, 76, 224)
+var textColor = termbox.RGBToAttribute(255, 255, 255)
 
-	fileName := "untitled"
+func CreateEditor() *Editor {
+	name := "untitled"
+	var content []string
+
 	if len(os.Args[1:]) > 0 {
-		fileName = os.Args[1]
+		name = os.Args[1]
+
+		file, err := os.Stat(name)
+		if err == nil && !file.IsDir() {
+			name = file.Name()
+			content, err = readLines(name)
+			if err != nil {
+				content = []string{}
+			}
+		}
 	}
-	editor.title = fileName
+
+	editor := new(Editor)
+	editor.title = name
+	editor.content = content
+	editor.Cursor.Set(0, 1, editor)
 
 	return editor
 }
@@ -36,49 +56,107 @@ loop:
 	for {
 		select {
 		case event := <-events:
-			if event.Type == termbox.EventKey {
-				if event.Key == termbox.KeyCtrlC {
-					break loop
+			switch event.Type {
+			case termbox.EventKey:
+				if event.Ch != 0 {
+
+				} else if event.Key != 0 {
+					switch event.Key {
+					case termbox.KeyCtrlC:
+						break loop
+					case termbox.KeyArrowLeft:
+						e.Cursor.MoveX(-1, e)
+						e.Draw()
+					case termbox.KeyArrowRight:
+						e.Cursor.MoveX(1, e)
+						e.Draw()
+					case termbox.KeyArrowUp:
+						e.Cursor.MoveY(-1, e)
+						e.Draw()
+					case termbox.KeyArrowDown:
+						e.Cursor.MoveY(1, e)
+						e.Draw()
+					}
 				}
-			}
-			if event.Type == termbox.EventResize {
+			case termbox.EventResize:
 				e.Draw()
+			case termbox.EventError:
+				panic(event.Err)
 			}
 		}
 	}
 }
 
 func (e *Editor) Draw() {
-	width, _ := termbox.Size()
+	termbox.SetCursor(e.Cursor.x, e.Cursor.y)
 
-	err := termbox.Clear(termbox.ColorWhite, termbox.ColorDefault)
+	err := termbox.Sync()
 	if err != nil {
-		return
+		panic(err)
 	}
 
-	e.drawStatusBar(width)
+	width, height := termbox.Size()
+
+	err = termbox.Clear(textColor, termbox.ColorDefault)
+	if err != nil {
+		panic(err)
+	}
+
+	e.printTitleBar(width)
+	e.printContent(width, height)
+	e.printStatusBar(width, height)
 
 	err = termbox.Flush()
 	if err != nil {
-		return
+		panic(err)
 	}
 }
 
-func (e *Editor) drawStatusBar(width int) {
-	var currX = DrawStr(" "+editorName, 0, 0, termbox.ColorWhite, termbox.ColorBlue)
+func (e *Editor) printTitleBar(width int) {
+	currX := drawStr(" "+editorName, 0, 0, textColor, accentColor)
 
 	titleLen := len(e.title)
 	halfWidth := (width - titleLen) / 2
 
 	for currX < halfWidth {
-		currX += DrawChar(' ', currX, 0, termbox.ColorWhite, termbox.ColorBlue)
+		currX += drawChar(' ', currX, 0, textColor, accentColor)
 	}
 
 	for currX < halfWidth+titleLen {
-		currX += DrawChar(rune(e.title[currX-halfWidth]), currX, 0, termbox.ColorWhite, termbox.ColorBlue)
+		currX += drawChar(rune(e.title[currX-halfWidth]), currX, 0, textColor, accentColor)
 	}
 
 	for currX < width {
-		currX += DrawChar(' ', currX, 0, termbox.ColorWhite, termbox.ColorBlue)
+		currX += drawChar(' ', currX, 0, textColor, accentColor)
+	}
+}
+
+func (e *Editor) printContent(width, height int) {
+	lines := len(e.content)
+
+	for y := 1; y < height; y++ {
+		relativeI := y - 1
+
+		if lines <= relativeI {
+			continue
+		}
+
+		line := e.content[relativeI]
+		if strLen(line) > width {
+			line = trimStr(line, width)
+			drawChar('…', width-1, y, textColor, termbox.ColorDefault)
+		}
+
+		drawStr(line, 0, y, textColor, termbox.ColorDefault)
+	}
+}
+
+func (e *Editor) printStatusBar(width, height int) {
+	message := fmt.Sprintf(" %d:%d (%d:%d)", e.Cursor.y-1, e.Cursor.x, e.docHeight(), e.docWidth())
+
+	currX := drawStr(message, 0, height-1, termbox.ColorBlack, textColor)
+
+	for currX < width {
+		currX += drawChar(' ', currX, height-1, termbox.ColorBlack, textColor)
 	}
 }

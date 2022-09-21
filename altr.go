@@ -12,6 +12,8 @@ func main() {
 	}
 	defer termbox.Close()
 
+	termbox.SetOutputMode(termbox.OutputRGB)
+
 	e := editor.CreateEditor()
 	e.Draw()
 	e.PollEvents()
