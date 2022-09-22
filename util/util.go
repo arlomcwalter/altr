@@ -1,38 +1,10 @@
 package util
 
 import (
-	"github.com/gdamore/tcell/v2"
-	"github.com/gdamore/tcell/v2/encoding"
-	"github.com/mattn/go-runewidth"
 	"math"
 )
 
-func NewScreen() tcell.Screen {
-	screen, err := tcell.NewScreen()
-	if err != nil {
-		panic(err)
-	}
-
-	encoding.Register()
-	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
-
-	err = screen.Init()
-	if err != nil {
-		panic(err)
-	}
-	screen.SetStyle(tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset))
-
-	return screen
-}
-
-func StrLen(msg string) int {
-	var length int
-	for _, char := range msg {
-		length += runewidth.RuneWidth(char)
-	}
-
-	return length
-}
+// Math
 
 func Min(min, val int) int {
 	if val > min {

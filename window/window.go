@@ -4,6 +4,7 @@ import (
 	"altr/util"
 	"fmt"
 	"github.com/gdamore/tcell/v2"
+	"github.com/gdamore/tcell/v2/encoding"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -20,7 +21,7 @@ type Window struct {
 func Create(name string) *Window {
 	window := new(Window)
 	window.title = name
-	window.screen = util.NewScreen()
+	window.screen = createScreen()
 	window.editor = createEditor(util.Parse(name))
 	window.cursor = &Cursor{col: 0, line: 0}
 	window.events = make(chan tcell.Event)
@@ -31,6 +32,24 @@ func Create(name string) *Window {
 	}()
 
 	return window
+}
+
+func createScreen() tcell.Screen {
+	screen, err := tcell.NewScreen()
+	if err != nil {
+		panic(err)
+	}
+
+	err = screen.Init()
+	if err != nil {
+		panic(err)
+	}
+
+	encoding.Register()
+
+	screen.SetStyle(tcell.StyleDefault.Background(tcell.ColorReset).Foreground(tcell.ColorReset))
+
+	return screen
 }
 
 // Main interface

@@ -10,7 +10,7 @@ func Parse(path string) []string {
 	file, err := os.Stat(path)
 
 	if err == nil && !file.IsDir() {
-		content, err := Read(path)
+		content, err := read(path)
 		if err == nil {
 			return content
 		}
@@ -19,7 +19,7 @@ func Parse(path string) []string {
 	return []string{""}
 }
 
-func Read(path string) ([]string, error) {
+func read(path string) ([]string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err

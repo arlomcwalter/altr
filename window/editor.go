@@ -1,8 +1,8 @@
 package window
 
 import (
-	"altr/util"
 	"fmt"
+	"github.com/mattn/go-runewidth"
 	"strconv"
 )
 
@@ -40,7 +40,7 @@ func (e *Editor) calcWidthAt(line int) int {
 	if len(content) > e.scrollX {
 		content = content[e.scrollX:]
 	}
-	return util.StrLen(content)
+	return runewidth.StringWidth(content)
 }
 
 func (e *Editor) lineCount() int {
