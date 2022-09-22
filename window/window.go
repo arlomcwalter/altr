@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/encoding"
-	"github.com/mattn/go-runewidth"
 )
 
 // Data structure
@@ -158,5 +157,5 @@ func (w *Window) drawStr(msg string, x, y int, style tcell.Style) int {
 
 func (w *Window) drawChar(char rune, x, y int, style tcell.Style) int {
 	w.screen.SetContent(x, y, char, nil, style)
-	return runewidth.RuneWidth(char)
+	return util.CharWidth(char)
 }
