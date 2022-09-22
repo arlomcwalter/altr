@@ -1,10 +1,12 @@
-package main
+package window
 
 import (
 	"altr/util"
 	"fmt"
 	"strconv"
 )
+
+// Data structure
 
 type Editor struct {
 	visibleLines     int
@@ -14,7 +16,7 @@ type Editor struct {
 	content          []string
 }
 
-func NewEditor(content []string) *Editor {
+func createEditor(content []string) *Editor {
 	editor := new(Editor)
 	editor.content = content
 	editor.padT = 1
@@ -24,7 +26,7 @@ func NewEditor(content []string) *Editor {
 
 // Dimensions
 
-func (e *Editor) Update(visibleLines int) {
+func (e *Editor) update(visibleLines int) {
 	e.padL = 1 + len(strconv.Itoa(e.lineCount())) + 1
 	e.visibleLines = visibleLines - e.vPadding()
 }
@@ -51,7 +53,7 @@ func (e *Editor) vPadding() int {
 
 // Rendering
 
-func (e *Editor) Draw(window *Window, active int) {
+func (e *Editor) draw(window *Window, active int) {
 	for line := 1; line <= e.visibleLines; line++ {
 		fileLine := line + e.scrollY
 		if fileLine > e.lineCount() {

@@ -1,4 +1,4 @@
-package main
+package window
 
 import (
 	"altr/util"
@@ -6,6 +6,8 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/mattn/go-runewidth"
 )
+
+// Data structure
 
 type Window struct {
 	title  string
@@ -15,11 +17,11 @@ type Window struct {
 	events chan tcell.Event
 }
 
-func CreateWindow(name string) *Window {
+func Create(name string) *Window {
 	window := new(Window)
 	window.title = name
 	window.screen = util.NewScreen()
-	window.editor = NewEditor(util.Parse(name))
+	window.editor = createEditor(util.Parse(name))
 	window.cursor = &Cursor{col: 0, line: 0}
 	window.events = make(chan tcell.Event)
 	go func() {
@@ -31,6 +33,8 @@ func CreateWindow(name string) *Window {
 	return window
 }
 
+// Main interface
+
 func (w *Window) Init() {
 	w.screen.Sync()
 	w.update()
@@ -40,6 +44,8 @@ func (w *Window) Init() {
 func (w *Window) Shutdown() {
 	w.screen.Fini()
 }
+
+// Functionality
 
 func (w *Window) pollEvents() {
 loop:
@@ -52,16 +58,16 @@ loop:
 				case tcell.KeyCtrlC:
 					break loop
 				case tcell.KeyLeft:
-					w.cursor.MoveX(-1)
+					w.cursor.moveX(-1)
 					w.update()
 				case tcell.KeyRight:
-					w.cursor.MoveX(1)
+					w.cursor.moveX(1)
 					w.update()
 				case tcell.KeyUp:
-					w.cursor.MoveY(-1)
+					w.cursor.moveY(-1)
 					w.update()
 				case tcell.KeyDown:
-					w.cursor.MoveY(1)
+					w.cursor.moveY(1)
 					w.update()
 				}
 			case *tcell.EventResize:
@@ -78,13 +84,13 @@ func (w *Window) update() {
 
 	cols, lines := w.screen.Size()
 
-	w.editor.Update(lines)
-	w.cursor.Clamp(cols, lines, w.editor)
-	w.screen.ShowCursor(w.cursor.Pos(w.editor))
+	w.editor.update(lines)
+	w.cursor.clamp(cols, lines, w.editor)
+	w.screen.ShowCursor(w.cursor.pos(w.editor))
 
 	//draw
 	w.printTitleBar(cols)
-	w.editor.Draw(w, w.cursor.line+w.editor.scrollY)
+	w.editor.draw(w, w.cursor.line+w.editor.scrollY)
 	w.printStatusBar(cols, lines)
 
 	w.screen.Show()

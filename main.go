@@ -1,6 +1,7 @@
 package main
 
 import (
+	"altr/window"
 	"fmt"
 	"os"
 )
@@ -19,7 +20,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	window := CreateWindow(name)
-	window.Init()
-	defer window.Shutdown()
+	w := window.Create(name)
+	w.Init()
+	defer w.Shutdown()
 }

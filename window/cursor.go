@@ -1,8 +1,10 @@
-package main
+package window
 
 import (
 	"altr/util"
 )
+
+// Data structure
 
 type Cursor struct {
 	col, line int
@@ -10,7 +12,7 @@ type Cursor struct {
 
 // Absolute Position
 
-func (c *Cursor) Clamp(cols, lines int, editor *Editor) {
+func (c *Cursor) clamp(cols, lines int, editor *Editor) {
 	c.line = c.clampV(lines, editor)
 	c.col = c.clampH(cols, editor)
 }
@@ -53,29 +55,29 @@ func (c *Cursor) clampV(lines int, editor *Editor) int {
 	return clamped
 }
 
-func (c *Cursor) Pos(editor *Editor) (int, int) {
+func (c *Cursor) pos(editor *Editor) (int, int) {
 	return editor.padL + c.col, editor.padT + c.line
 }
 
 // Relative Position
 
-func (c *Cursor) MoveX(x int) {
-	c.SetX(c.col + x)
+func (c *Cursor) moveX(x int) {
+	c.setX(c.col + x)
 }
 
-func (c *Cursor) MoveY(y int) {
-	c.SetY(c.line + y)
+func (c *Cursor) moveY(y int) {
+	c.setY(c.line + y)
 }
 
-func (c *Cursor) Set(x, y int) {
-	c.SetX(x)
-	c.SetY(y)
-}
-
-func (c *Cursor) SetX(x int) {
+func (c *Cursor) setX(x int) {
 	c.col = x
 }
 
-func (c *Cursor) SetY(y int) {
+func (c *Cursor) setY(y int) {
 	c.line = y
+}
+
+func (c *Cursor) set(x, y int) {
+	c.setX(x)
+	c.setY(y)
 }
